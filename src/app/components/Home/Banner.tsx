@@ -5,7 +5,7 @@ import Slider from "react-slick";
 import SliderImgOne from "../../assets/banner1.jpg";
 import SliderImgTwo from "../../assets/banner2.jpg";
 import CommonLayout from "@/app/layouts/CommonLayout";
-import Button from "../Button";
+import Button from "../UI/Button";
 
 export default function Banner() {
   const settings = {

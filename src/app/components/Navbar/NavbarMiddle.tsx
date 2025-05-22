@@ -8,6 +8,8 @@ export default async function NavbarMiddle() {
   const data = await fetch(`${process.env.APP_URL}`);
   const response = await data.json();
   const buisinesses = response.data;
+  console.log('businesses',buisinesses);
+  
   const businessLogo = buisinesses[0].logo.optimizeUrl;
   return (
     <CommonLayout>
