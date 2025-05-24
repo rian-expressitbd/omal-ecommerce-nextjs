@@ -3,8 +3,9 @@ import { useGetBusinessesQuery } from "@/app/features/buissinessApi";
 import Title from "../UI/Title";
 import CommonLayout from "@/app/layouts/CommonLayout";
 import Banner from "../Home/Banner";
+import CategoryProductCard from "../UI/CategoryProductCard";
 
-export default function MensDress() {
+export default function CategoryProducts() {
   const { data: productsData } = useGetProductsQuery();
   const { data: businessesData } = useGetBusinessesQuery();
 
@@ -56,21 +57,8 @@ export default function MensDress() {
                 <Title title={categoryName} />
 
                 <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
-                  {products.map((product) => (
-                    <div
-                      key={product._id}
-                      className='border p-4 rounded shadow-sm bg-white'
-                    >
-                      <img
-                        src={product.images?.[0]?.secure_url}
-                        alt={product.name}
-                        className='w-full h-48 object-cover rounded mb-2'
-                      />
-                      <h3 className='font-semibold'>{product.name}</h3>
-                      <p className='text-sm text-gray-600'>
-                        {product.short_description}
-                      </p>
-                    </div>
+                  {products.map((product, index) => (
+                    <CategoryProductCard key={index} product={product} />
                   ))}
                 </div>
               </div>

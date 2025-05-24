@@ -2,9 +2,11 @@
 "use client";
 import CommonLayout from "@/app/layouts/CommonLayout";
 import Title from "../UI/Title";
-import Card from "../UI/Card";
 import { useGetProductsQuery } from "@/app/features/productsApi";
 import { useEffect, useState } from "react";
+
+import Card from "../UI/Card";
+import Link from "next/link";
 
 export default function ProductsClientComponent() {
   const {
@@ -30,7 +32,9 @@ export default function ProductsClientComponent() {
           {isError && <p>Failed to load products.</p>}
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5'>
             {productsToShow?.map((product, index) => (
-              <Card key={index} product={product} />
+              <Link href={`/product/${product?._id}`}>
+                <Card key={index} product={product} />
+              </Link>
             ))}
           </div>
         </div>

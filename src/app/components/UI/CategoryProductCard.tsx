@@ -2,8 +2,8 @@ import Image from "next/image";
 import React from "react";
 import Button from "./Button";
 
-export default function Card({ product }) {
-  console.log("product", product);
+export default function CategoryProductCard({ product }) {
+  console.log("cat_product", product);
 
   return (
     <div>
@@ -17,7 +17,7 @@ export default function Card({ product }) {
           {/* Product image */}
           {product.images[0].image.optimizeUrl && (
             <Image
-              src={product.images[0].image.optimizeUrl}
+              src={product.images[0].image.secure_url}
               className='mx-auto w-full h-full object-cover my-auto'
               alt={product.title || "product_image"}
               width={300} // Add width (adjust as needed)
