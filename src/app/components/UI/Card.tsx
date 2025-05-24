@@ -1,6 +1,5 @@
 import Image from "next/image";
 import React from "react";
-import { FiShoppingCart } from "react-icons/fi";
 import Button from "./Button";
 
 export default function Card({ product }) {
@@ -20,7 +19,7 @@ export default function Card({ product }) {
             <Image
               src={product.images[0].image.optimizeUrl}
               className='mx-auto w-full h-full object-cover my-auto'
-              alt={product.title}
+              alt={product.title || "product_image"}
               width={300} // Add width (adjust as needed)
               height={300} // Add height (adjust as needed)
             />

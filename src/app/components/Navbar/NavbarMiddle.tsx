@@ -1,26 +1,31 @@
-import React from "react";
+"use client";
+import React, { useEffect, useState } from "react";
 import { FaMagnifyingGlass } from "react-icons/fa6";
 import Image from "next/image";
 import { BsCartDash } from "react-icons/bs";
 import CommonLayout from "@/app/layouts/CommonLayout";
+import logo from "@/app/assets/logo1.jpg";
 
-export default async function NavbarMiddle() {
-  const data = await fetch(`${process.env.APP_URL}`);
-  const response = await data.json();
-  const buisinesses = response.data;
-  console.log('businesses',buisinesses);
-  
-  const businessLogo = buisinesses[0].logo.optimizeUrl;
+export default function NavbarMiddle() {
+  const [buisinessLogo, setBusinessLogo] = useState("");
+  useEffect(() => {
+    fetch(
+      `https://backend.calquick.app/v2/api/public/67e1167340fa1b061c4b5389/6800959381b0b41ac48282a1`
+    )
+      .then((res) => res.json())
+      .then((data) => console.log(data?.data[0].logo.optimizeUrl));
+  });
+
   return (
     <CommonLayout>
       <div className='grid grid-cols-3 mt-5'>
         <div className='w-1/3 place-self-center'></div>
         <div className='w-1/3 place-self-center'>
           <Image
-            src={businessLogo}
-            alt='buisiness_logo'
+            src={buisinessLogo || logo}
+            alt='business_logo'
             width={100}
-            height={5}
+            height={50}
           />
         </div>
 
@@ -30,8 +35,6 @@ export default async function NavbarMiddle() {
               className=' h-10 bg-gray-200 p-4 rounded-4xl'
               placeholder='Search'
               type='text'
-              name=''
-              id=''
             />
             <FaMagnifyingGlass
               size={20}

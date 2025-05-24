@@ -1,14 +1,17 @@
+"use client";
 import Footer from "./components/Footer/Footer";
 import Banner from "./components/Home/Banner";
-import Products from "./components/Home/Products";
+import ProductsClientComponent from "./components/Home/ProductsClientComponent";
 import Navbar from "./components/Navbar/Navbar";
+import { useGetProductsQuery } from "./features/productsApi";
 
 export default function Home() {
+  const { data: liveProducts, isLoading, isError } = useGetProductsQuery();
   return (
     <>
       <Navbar />
       <Banner />
-      <Products />
+      <ProductsClientComponent initialProducts={liveProducts} />
       <Banner />
       <Footer />
     </>

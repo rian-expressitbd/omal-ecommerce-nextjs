@@ -93,7 +93,7 @@ const Footer: React.FC = () => {
       <div className='flex flex-col md:flex-row justify-between items-center py-6 border-t border-gray-700 pt-4 bg-purple-950 '>
         <div className='mx-auto container flex justify-between items-center'>
           <p className='text-sm text-white'>© 2024. All Rights Reserved.</p>
-          <div className='flex space-x-4 mt-4 md:mt-0' text-white>
+          <div className='flex space-x-4 mt-4 md:mt-0 text-white' >
             <img
               src='https://upload.wikimedia.org/wikipedia/commons/4/41/Visa_Logo.png'
               alt='Visa'
