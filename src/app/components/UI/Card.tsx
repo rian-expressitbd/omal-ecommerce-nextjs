@@ -18,13 +18,12 @@ export default function Card({ product }) {
           {product.images[0].image.optimizeUrl && (
             <Image
               src={product.images[0].image.optimizeUrl}
-              className='mx-auto w-full h-full object-cover my-auto'
+              className='mx-auto w-[283px] h-[368px] object-cover my-auto'
               alt={product.title || "product_image"}
               width={300} // Add width (adjust as needed)
               height={300} // Add height (adjust as needed)
             />
           )}
-
 
           {/* Product title and price */}
           <h3 className='text-sm font-bold mt-3'>{product.title}</h3>
@@ -32,7 +31,7 @@ export default function Card({ product }) {
         </div>
 
         <Button
-          className='absolute flex justify-center bottom-0 left-0 right-0 bg-white text-black font-semibold py-3 
+          className='absolute mx-auto flex w-[283px] justify-center bottom-0 left-0 right-0 bg-white text-black font-semibold py-3 
                   opacity-0 translate-y-full transition-all duration-500
                   group-hover:opacity-100 group-hover:-translate-y-6
                   hover:bg-white text-sm cursor-pointer'
