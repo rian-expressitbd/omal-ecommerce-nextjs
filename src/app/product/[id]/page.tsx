@@ -12,11 +12,12 @@ import Image from "next/image";
 import { useParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { MdOutlinePermMedia } from "react-icons/md";
 import { VideoPlayer } from "@/media/VideoPlayer";
 import { FaMinus, FaPlus } from "react-icons/fa6";
 import Title from "@/app/components/UI/Title";
-import { useGetBusinessesQuery } from "@/app/features/buissinessApi";
+import Breadcrumb from "@/app/components/UI/Breadcrumb";
+import toast from "react-hot-toast";
+import { Toaster } from "react-hot-toast";
 
 interface VideoType {
   secure_url: string;
@@ -25,13 +26,26 @@ interface MediaItem {
   type: "image" | "video";
   url: string;
 }
+interface CartItem {
+  productId: string;
+  quantity: number;
+  price: number;
+  variantId?: string;
+  name?: string;
+  image?: string;
+}
 
 export default function ProductPage() {
   const [product, setProductToShow] = useState<any>(null);
   const [selectedMedia, setSelectedMedia] = useState(0);
   const [sellingPrice, setSellingPrice] = useState(0);
   const [offerPrice, setOfferPrice] = useState(0);
+  const [productCount, setProductCount] = useState(1);
+  const [minPrice, setMinPrice] = useState(0);
+  const [maxPrice, setMaxPrice] = useState(0);
   const [zoomStyle, setZoomStyle] = useState<React.CSSProperties>({});
+  const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
   const { id } = useParams();
   const productId = Array.isArray(id) ? id[0] : id;
 
@@ -41,23 +55,110 @@ export default function ProductPage() {
     if (products?.data && productId) {
       const singleProduct = products.data.find((p) => p._id == productId);
       setProductToShow(singleProduct);
+
+      if (singleProduct?.variantsId?.length) {
+        const prices = singleProduct.variantsId.map((v) => v?.selling_price);
+        const min_price = Math.min(...prices);
+        const max_price = Math.max(...prices);
+        setMinPrice(min_price);
+        setMaxPrice(max_price);
+      }
     }
   }, [products, productId]);
-  console.log("singleProduct", product);
 
   const { data: relatedProducts } = useGetProductsByCategoriesQuery(
-    product?.sub_category[0]._id
+    product?.sub_category[0]?._id
   );
 
-  const handleSelectVariant = (selectedVariant) => {
-    const sellingPrice = product?.variantsId?.map(
-      (v) => v?.variants_values.includes(selectedVariant) && v?.selling_price
+  const handleSelectVariant = (selectedVariantValue: string) => {
+    const selectedVariantObj = product?.variantsId?.find((v) =>
+      v?.variants_values?.includes(selectedVariantValue)
     );
-    const offerPrice = product?.variantsId?.map(
-      (v) => v?.variants_values.includes(selectedVariant) && v?.offer_price
-    );
-    setSellingPrice(sellingPrice);
-    setOfferPrice(offerPrice);
+
+    if (selectedVariantObj) {
+      setSelectedVariant(selectedVariantObj._id);
+      setSellingPrice(selectedVariantObj.selling_price);
+      setOfferPrice(selectedVariantObj.offer_price);
+    } else {
+      setSelectedVariant(null);
+      setSellingPrice(0);
+      setOfferPrice(0);
+    }
+  };
+
+  const getCartItems = (): CartItem[] => {
+    if (typeof window !== "undefined") {
+      const cartItems = localStorage.getItem("cartItems");
+      return cartItems ? JSON.parse(cartItems) : [];
+    }
+    return [];
+  };
+
+  const saveCartItems = (items: CartItem[]) => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("cartItems", JSON.stringify(items));
+    }
+  };
+
+  const handleAddToCart = () => {
+    setIsAddingToCart(true);
+    
+    if (productCount < 1) {
+      toast.error("Please select at least 1 item", {
+        position: "top-center",
+      });
+      setIsAddingToCart(false);
+      return;
+    }
+
+    if (product.hasVariants && !selectedVariant) {
+      toast.error("Please select a variant", {
+        position: "top-center",
+      });
+      setIsAddingToCart(false);
+      return;
+    }
+
+    try {
+      const cartItems = getCartItems();
+      const existingItemIndex = cartItems.findIndex(
+        (item) =>
+          item.productId === product._id &&
+          (!product.hasVariants || item.variantId === selectedVariant)
+      );
+
+      if (existingItemIndex >= 0) {
+        cartItems[existingItemIndex].quantity += productCount;
+        toast.success(
+          `Quantity updated (Now ${cartItems[existingItemIndex].quantity})`,
+          {
+            position: "top-center",
+          }
+        );
+      } else {
+        const newItem: CartItem = {
+          productId: product._id,
+          quantity: productCount,
+          price: offerPrice || product.variantsId[0].offer_price,
+          variantId: product.hasVariants ? selectedVariant : undefined,
+          name: product.name,
+          image: product.images[0]?.image?.optimizeUrl,
+        };
+        cartItems.push(newItem);
+        toast.success("Added to cart successfully!", {
+          position: "top-center",
+        });
+      }
+
+      saveCartItems(cartItems);
+    } catch (error) {
+      toast.error("Failed to add to cart", {
+        position: "top-center",
+      });
+      console.error("Add to cart error:", error);
+    } finally {
+      setIsAddingToCart(false);
+    }
   };
 
   const mediaItems: MediaItem[] = [
@@ -97,7 +198,12 @@ export default function ProductPage() {
     <>
       <Navbar />
       <CommonLayout>
-        <div className='flex gap-12 items-start mt-5 mb-5'>
+        <Toaster position="top-center" />
+        <div className='mt-8 mb-8'>
+          <Breadcrumb />
+        </div>
+
+        <div className='flex gap-12 items-start mt-5 mb-5 w-full'>
           <div className='lg:col-span-1 space-y-6'>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -135,12 +241,12 @@ export default function ProductPage() {
                 </div>
 
                 <div className='flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-100 dark:scrollbar-track-gray-800'>
-                  {mediaItems?.map((item) => (
+                  {mediaItems?.map((item, index) => (
                     <button
                       key={`media-${uuidv4()}`}
-                      onClick={() => setSelectedMedia(mediaItems.indexOf(item))}
+                      onClick={() => setSelectedMedia(index)}
                       className={`relative aspect-square w-20 flex-shrink-0 rounded overflow-hidden border-2 transition-transform duration-200 ${
-                        selectedMedia === mediaItems.indexOf(item)
+                        selectedMedia === index
                           ? "border-orange-400 dark:border-primary scale-105"
                           : "border-gray-200 dark:border-gray-700 hover:scale-95"
                       }`}
@@ -154,7 +260,7 @@ export default function ProductPage() {
                       ) : (
                         <img
                           src={item.url}
-                          alt={`Thumbnail ${mediaItems.indexOf(item) + 1}`}
+                          alt={`Thumbnail ${index + 1}`}
                           className='w-full h-full object-cover'
                         />
                       )}
@@ -165,27 +271,64 @@ export default function ProductPage() {
             </motion.div>
           </div>
 
-          <div>
+          <div className='w-full'>
             <div className='flex flex-col'>
               <h3 className='text-2xl font-semibold'>{product?.name}</h3>
-              <p className='text-sm'>{product?.short_description}</p>
-              <div className='flex gap-3'>
-                <div className='flex items-center gap-3'>
-                  <h4 className='mt-8 text-2xl'>BDT {offerPrice}</h4>
-                  <h4 className='mt-8 line-through text-2xl text-red-800'>
-                    BDT {sellingPrice}
+              <div
+                dangerouslySetInnerHTML={{ __html: product?.short_description }}
+              />
+              {product.hasVariants && (
+                <h4 className='mt-3 text-2xl font-semibold'>
+                  BDT {minPrice} - BDT {maxPrice}
+                </h4>
+              )}
+
+              {product.hasVariants ? (
+                <div className='flex items-center gap-3 mt-8'>
+                  {offerPrice == 0 ? (
+                    <p className='text-2xl text-gray-500 italic'>
+                      Please select a variant
+                    </p>
+                  ) : (
+                    <>
+                      <h4 className='text-2xl font-semibold text-primary'>
+                        BDT {offerPrice.toLocaleString()}
+                      </h4>
+                      {sellingPrice > offerPrice && (
+                        <h4 className='line-through text-2xl text-red-600 ml-2'>
+                          BDT {sellingPrice.toLocaleString()}
+                        </h4>
+                      )}
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className='flex items-center gap-3 mt-8'>
+                  <h4 className='text-2xl font-semibold text-primary'>
+                    BDT {product.variantsId[0].offer_price}
+                  </h4>
+                  <h4 className='line-through text-2xl text-red-600 ml-2'>
+                    BDT {product.variantsId[0].selling_price}
                   </h4>
                 </div>
-              </div>
+              )}
+
               <div className='flex items-center justify-center gap-3 border-[0.5px] border-gray-500 p-3 mt-5 mb-5 w-24'>
-                <div>
+                <button 
+                  className='cursor-pointer'
+                  onClick={() => setProductCount(Math.max(1, productCount - 1))}
+                >
                   <FaMinus />
-                </div>
-                <div>0</div>
-                <div>
+                </button>
+                <div>{productCount}</div>
+                <button 
+                  className='cursor-pointer'
+                  onClick={() => setProductCount(productCount + 1)}
+                >
                   <FaPlus />
-                </div>
+                </button>
               </div>
+
               {product?.tags?.length > 0 && (
                 <div className='flex flex-col'>
                   <h4 className='text-md mt-4 font-semibold'>Tags:</h4>
@@ -201,31 +344,46 @@ export default function ProductPage() {
                   </div>
                 </div>
               )}
-              <div className='flex flex-col mt-4'>
-                <h4 className='text-md font-semibold'>Select Variant:</h4>
-              </div>
-              {product?.variantsId?.length > 0 && (
-                <div className='grid grid-cols-3 lg:grid-cols-4 gap-4 mt-2'>
-                  {product?.variantsId?.map((variant) =>
-                    variant?.variants_values?.map((value) => (
-                      <div
-                        key={`variant-value-${uuidv4()}`}
-                        className='p-2 border-[0.5px] border-gray-400 rounded cursor-pointer'
-                        onClick={() => handleSelectVariant(value)}
-                      >
-                        <h3>{value}</h3>
-                      </div>
-                    ))
-                  )}
+
+              {product.hasVariants && (
+                <div className='flex flex-col mt-4'>
+                  <h4 className='text-md font-semibold'>Select Variant:</h4>
+                  <div className='grid grid-cols-3 lg:grid-cols-4 gap-4 mt-2'>
+                    {product?.variantsId?.map((variant) => {
+                      const variantValue = variant?.variants_values?.join("-");
+                      const isSelected = selectedVariant === variant._id;
+                      return (
+                        <div key={`var-${uuidv4()}`}>
+                          <div
+                            className={`p-2 border-[0.5px] rounded cursor-pointer flex items-center ${
+                              isSelected
+                                ? "border-primary bg-primary/10"
+                                : "border-gray-400"
+                            }`}
+                            onClick={() => handleSelectVariant(variant.variants_values[0])}
+                          >
+                            <h3>{variantValue}</h3>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
-              <div className='p-3 border-[0.5px] border-gray-900 rounded mt-12 text-center'>
-                Add To Cart
-              </div>
+              <button
+                className={`p-3 border-[0.5px] border-gray-900 rounded mt-12 text-center cursor-pointer w-1/2 ${
+                  isAddingToCart ? "opacity-70" : ""
+                }`}
+                onClick={handleAddToCart}
+                disabled={isAddingToCart}
+              >
+                {isAddingToCart ? "Adding..." : "Add To Cart"}
+              </button>
             </div>
           </div>
         </div>
+
         {relatedProducts?.data?.length > 0 && (
           <div className='mt-12'>
             <Title title='Related Products' />

@@ -6,6 +6,7 @@ import CategoryProducts from "./components/CategoryProducts/CategoryProducts";
 
 import Navbar from "./components/Navbar/Navbar";
 import { useGetProductsQuery } from "./features/productsApi";
+import { Toaster } from "react-hot-toast";
 
 export default function Home() {
   const { data: liveProducts, isLoading, isError } = useGetProductsQuery();
@@ -16,6 +17,7 @@ export default function Home() {
       <ProductsClientComponent initialProducts={liveProducts} />
       <Banner />
       <CategoryProducts />
+      <Toaster />
       <Footer />
     </>
   );

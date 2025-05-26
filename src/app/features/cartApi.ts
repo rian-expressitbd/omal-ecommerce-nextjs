@@ -4,6 +4,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 interface CartItem {
   productId: string;
   quantity: number;
+  price:number;
   variantId?: string;
 }
 

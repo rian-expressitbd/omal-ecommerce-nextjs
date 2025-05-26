@@ -8,7 +8,7 @@ export default function NavbarLower() {
       <CommonLayout>
         <div className='mt-5'>
           <ul className="flex items-center gap-10 justify-center">
-            <Link className="text-sm font-semibold" href="#">Home</Link>
+            <Link className="text-sm font-semibold" href="/">Home</Link>
             <Link className="text-sm font-semibold" href="#">Eid Collection 25 </Link>
             <Link className="text-sm font-semibold" href="#">Restocks</Link>
             <Link className="text-sm font-semibold" href="#">Best Sellers</Link>
