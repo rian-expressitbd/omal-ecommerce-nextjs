@@ -11,11 +11,13 @@ import { Toaster, toast } from "react-hot-toast";
 import { Order } from "@/types/cart";
 import { useRouter } from "next/navigation";
 import { CartItem } from "@/types/cart";
+import { log } from "console";
+import Image from "next/image";
 
 export default function Checkout() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
-  const { isCartOpen } = useSelector((state: RootState) => state.cart);
+  const { isCartOpen, items } = useSelector((state: RootState) => state.cart);
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -44,6 +46,7 @@ export default function Checkout() {
       }
     };
     loadCartItems();
+    console.log("items", items);
   }, []);
 
   const handleInputChange = (
@@ -74,7 +77,7 @@ export default function Checkout() {
       toast.error("Transaction ID is required for bKash/Nagad");
       return false;
     }
-    if (cartItems.length === 0) {
+    if (items?.length === 0) {
       toast.error("Your cart is empty");
       return false;
     }
@@ -94,7 +97,7 @@ export default function Checkout() {
         customer_phone: formData.phone,
         customer_address: formData.address,
         delivery_area: formData.deliveryArea,
-        products: cartItems.map((item) => ({
+        products: items?.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
         })),
@@ -119,7 +122,7 @@ export default function Checkout() {
   };
 
   // Calculate total due
-  const totalDue: number = cartItems.reduce(
+  const totalDue: number = items?.reduce(
     (total, item) => total + item.price * item.quantity,
     0
   );
@@ -225,29 +228,47 @@ export default function Checkout() {
               <h2 className='text-xl font-semibold text-gray-800 mb-4'>
                 Order Summary
               </h2>
-              {cartItems.length === 0 ? (
+              {items?.length === 0 ? (
                 <p className='text-red-500 text-sm'>Your cart is empty</p>
               ) : (
-                <div className='space-y-4'>
-                  {cartItems.map((item, index) => (
+                <div className='space-y-4 w-full'>
+                  {items?.map((item, index) => (
                     <div
                       key={`${item.productId}-${item.variantId || index}`}
                       className='flex justify-between'
                     >
-                      <div>
-                        <p className='text-gray-700  break-words'>
-                          {item.name || "Unknown Product"}
-                        </p>
-                        <p className='text-sm text-gray-500'>
-                          Quantity: {item.quantity}
-                        </p>
-                        <p className='text-sm text-gray-500'>
-                          Price per unit: BDT {item.price.toLocaleString()}
-                        </p>
+                      <div className='w-full'>
+                        <div className='flex items-start gap-3 w-full'>
+                          <Image
+                            src={item?.image}
+                            alt='product-image'
+                            width={300}
+                            height={300}
+                            className='w-20 h-20'
+                          />
+                          <div className="w-full">
+                            <div className='flex items-start justify-between w-full'>
+                              <div className='flex flex-col'>
+                                <p className='text-gray-700  break-words'>
+                                  {item.name || "Unknown Product"}
+                                </p>
+                                <p className='text-sm text-gray-500'>
+                                  Quantity: {item.quantity}
+                                </p>
+                                <p className='text-sm text-gray-500'>
+                                  Price per unit: BDT{" "}
+                                  {item.price.toLocaleString()}
+                                </p>
+                              </div>
+                               <p className='text-gray-700'>
+                              BDT{" "}
+                              {(item.price * item.quantity).toLocaleString()}
+                            </p>
+                            </div>
+                           
+                          </div>
+                        </div>
                       </div>
-                      <p className='text-gray-700'>
-                        BDT {(item.price * item.quantity).toLocaleString()}
-                      </p>
                     </div>
                   ))}
                   <hr className='my-4 border-gray-200' />

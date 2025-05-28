@@ -19,7 +19,7 @@ const cartSlice = createSlice({
   name: "cart",
   initialState,
   reducers: {
-    addToCart(state, action: PayloadAction<CartItem>) {
+    addToCart: (state, action: PayloadAction<CartItem>) => {
       const existingItem = state.items.find(
         (i) =>
           i.productId === action.payload.productId &&
@@ -69,9 +69,15 @@ const cartSlice = createSlice({
     toggleCart(state, action: PayloadAction<boolean>) {
       state.isCartOpen = action.payload;
     },
+    clearCart(state) {
+      state.items = [];
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("cartItems");
+      }
+    },
   },
 });
 
-export const { addToCart, updateCartItem, removeFromCart, toggleCart } =
+export const { addToCart, updateCartItem, removeFromCart, toggleCart, clearCart } =
   cartSlice.actions;
 export default cartSlice.reducer;
