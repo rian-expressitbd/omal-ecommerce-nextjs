@@ -1,7 +1,7 @@
 "use client";
 import CommonLayout from "@/app/layouts/CommonLayout";
 import Title from "../UI/Title";
-import { useGetProductsQuery } from "@/app/features/productsApi";
+import { useGetProductsQuery } from "@/app/libs/features/productsApi";
 import { useEffect, useState } from "react";
 import Card from "../UI/Card";
 import Link from "next/link";

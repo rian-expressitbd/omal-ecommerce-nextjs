@@ -1,22 +1,59 @@
 "use client";
+
 import Footer from "./components/Footer/Footer";
 import Banner from "./components/Home/Banner";
 import ProductsClientComponent from "./components/Home/ProductsClientComponent";
-import CategoryProducts from "./components/CategoryProducts/CategoryProducts";
-
+import CategoryProducts from "./components/Home/CategoryProducts/CategoryProducts";
 import Navbar from "./components/Navbar/Navbar";
-import { useGetProductsQuery } from "./features/productsApi";
 import { Toaster } from "react-hot-toast";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/app/libs/store/store";
+import {
+  toggleCart,
+  updateCartItem,
+  removeFromCart,
+} from "./libs/features/cartSlice";
+import CartDrawer from "./components/Home/CartDrawer";
+import { CartItem } from "@/app/types/cart";
 
 export default function Home() {
-  const { data: liveProducts, isLoading, isError } = useGetProductsQuery();
+  const dispatch = useDispatch<AppDispatch>();
+  const { items: cartItems, isCartOpen } = useSelector(
+    (state: RootState) => state.cart
+  );
+
+  const handleUpdateCartItem = (
+    productId: string,
+    variantId: string | undefined,
+    quantity: number
+  ) => {
+    dispatch(updateCartItem({ productId, variantId, quantity }));
+  };
+
+  const handleRemoveCartItem = (
+    productId: string,
+    variantId: string | undefined
+  ) => {
+    dispatch(removeFromCart({ productId, variantId }));
+  };
+
   return (
     <>
-      <Navbar />
+      <Navbar
+        isCartOpen={isCartOpen}
+        setIsCartOpen={(isOpen) => dispatch(toggleCart(isOpen))}
+      />
       <Banner />
-      <ProductsClientComponent initialProducts={liveProducts} />
+      <ProductsClientComponent />
       <Banner />
       <CategoryProducts />
+      <CartDrawer
+        isOpen={isCartOpen}
+        onClose={() => dispatch(toggleCart(false))}
+        cartItems={cartItems}
+        updateCartItem={handleUpdateCartItem}
+        removeCartItem={handleRemoveCartItem}
+      />
       <Toaster />
       <Footer />
     </>

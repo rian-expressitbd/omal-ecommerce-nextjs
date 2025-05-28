@@ -1,409 +1,45 @@
-"use client";
+import { Metadata } from "next";
+import ProductPage from "./ProductPage";
+import { Product } from "@/app/types/Product";
 
-import { v4 as uuidv4 } from "uuid";
-import Footer from "@/app/components/Footer/Footer";
-import Navbar from "@/app/components/Navbar/Navbar";
-import {
-  useGetProductsByCategoriesQuery,
-  useGetProductsQuery,
-} from "@/app/features/productsApi";
-import CommonLayout from "@/app/layouts/CommonLayout";
-import Image from "next/image";
-import { useParams } from "next/navigation";
-import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { VideoPlayer } from "@/media/VideoPlayer";
-import { FaMinus, FaPlus } from "react-icons/fa6";
-import Title from "@/app/components/UI/Title";
-import Breadcrumb from "@/app/components/UI/Breadcrumb";
-import toast from "react-hot-toast";
-import { Toaster } from "react-hot-toast";
-
-interface VideoType {
-  secure_url: string;
-}
-interface MediaItem {
-  type: "image" | "video";
-  url: string;
-}
-interface CartItem {
-  productId: string;
-  quantity: number;
-  price: number;
-  variantId?: string;
-  name?: string;
-  image?: string;
-}
-
-export default function ProductPage() {
-  const [product, setProductToShow] = useState<any>(null);
-  const [selectedMedia, setSelectedMedia] = useState(0);
-  const [sellingPrice, setSellingPrice] = useState(0);
-  const [offerPrice, setOfferPrice] = useState(0);
-  const [productCount, setProductCount] = useState(1);
-  const [minPrice, setMinPrice] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(0);
-  const [zoomStyle, setZoomStyle] = useState<React.CSSProperties>({});
-  const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
-  const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const { id } = useParams();
-  const productId = Array.isArray(id) ? id[0] : id;
-
-  const { data: products, isLoading, isError } = useGetProductsQuery();
-
-  useEffect(() => {
-    if (products?.data && productId) {
-      const singleProduct = products.data.find((p) => p._id == productId);
-      setProductToShow(singleProduct);
-
-      if (singleProduct?.variantsId?.length) {
-        const prices = singleProduct.variantsId.map((v) => v?.selling_price);
-        const min_price = Math.min(...prices);
-        const max_price = Math.max(...prices);
-        setMinPrice(min_price);
-        setMaxPrice(max_price);
+async function getProductById(id: string): Promise<Product | null> {
+  try {
+    const response = await fetch(
+      `https://backend.calquick.app/v2/api/public/6829ddabc20c6404b3e2a66b/6829ded2c20c6404b3e2a680/products?_id=${id}`,
+      {
+        cache: "no-store",
       }
-    }
-  }, [products, productId]);
-
-  const { data: relatedProducts } = useGetProductsByCategoriesQuery(
-    product?.sub_category[0]?._id
-  );
-
-  const handleSelectVariant = (selectedVariantValue: string) => {
-    const selectedVariantObj = product?.variantsId?.find((v) =>
-      v?.variants_values?.includes(selectedVariantValue)
     );
-
-    if (selectedVariantObj) {
-      setSelectedVariant(selectedVariantObj._id);
-      setSellingPrice(selectedVariantObj.selling_price);
-      setOfferPrice(selectedVariantObj.offer_price);
-    } else {
-      setSelectedVariant(null);
-      setSellingPrice(0);
-      setOfferPrice(0);
+    if (!response.ok) {
+      throw new Error("Failed to fetch product");
     }
+    const result = await response.json();
+    // Assuming the API returns { data: Product[] }
+    const product = Array.isArray(result.data) ? result.data[0] : result.data;
+    return product || null; // Return null if no product is found
+  } catch (error) {
+    console.error("Error fetching product:", error);
+    return null; // Return null on error
+  }
+}
+export async function generateMetadata({
+  params,
+}: {
+  params: { id: string };
+}): Promise<Metadata> {
+  const product: Product = await getProductById(params.id);
+
+  return {
+    title: product?.name || "Product Not Found",
+    description: product?.short_description || "",
+    // openGraph: {
+    //   images: product?.images?.map((img) => img.image.optimizeUrl) || [],
+    // },
   };
+}
 
-  const getCartItems = (): CartItem[] => {
-    if (typeof window !== "undefined") {
-      const cartItems = localStorage.getItem("cartItems");
-      return cartItems ? JSON.parse(cartItems) : [];
-    }
-    return [];
-  };
+export default async function Page({ params }: { params: { id: string } }) {
+  const product: Product = await getProductById(params.id);
 
-  const saveCartItems = (items: CartItem[]) => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("cartItems", JSON.stringify(items));
-    }
-  };
-
-  const handleAddToCart = () => {
-    setIsAddingToCart(true);
-    
-    if (productCount < 1) {
-      toast.error("Please select at least 1 item", {
-        position: "top-center",
-      });
-      setIsAddingToCart(false);
-      return;
-    }
-
-    if (product.hasVariants && !selectedVariant) {
-      toast.error("Please select a variant", {
-        position: "top-center",
-      });
-      setIsAddingToCart(false);
-      return;
-    }
-
-    try {
-      const cartItems = getCartItems();
-      const existingItemIndex = cartItems.findIndex(
-        (item) =>
-          item.productId === product._id &&
-          (!product.hasVariants || item.variantId === selectedVariant)
-      );
-
-      if (existingItemIndex >= 0) {
-        cartItems[existingItemIndex].quantity += productCount;
-        toast.success(
-          `Quantity updated (Now ${cartItems[existingItemIndex].quantity})`,
-          {
-            position: "top-center",
-          }
-        );
-      } else {
-        const newItem: CartItem = {
-          productId: product._id,
-          quantity: productCount,
-          price: offerPrice || product.variantsId[0].offer_price,
-          variantId: product.hasVariants ? selectedVariant : undefined,
-          name: product.name,
-          image: product.images[0]?.image?.optimizeUrl,
-        };
-        cartItems.push(newItem);
-        toast.success("Added to cart successfully!", {
-          position: "top-center",
-        });
-      }
-
-      saveCartItems(cartItems);
-    } catch (error) {
-      toast.error("Failed to add to cart", {
-        position: "top-center",
-      });
-      console.error("Add to cart error:", error);
-    } finally {
-      setIsAddingToCart(false);
-    }
-  };
-
-  const mediaItems: MediaItem[] = [
-    ...(product?.images?.map((img) => ({
-      type: "image" as const,
-      url: img?.image?.optimizeUrl,
-    })) || []),
-    ...(product?.video
-      ? [
-          {
-            type: "video" as const,
-            url: (product?.video as unknown as VideoType).secure_url,
-          },
-        ]
-      : []),
-  ];
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const { left, top, width, height } =
-      e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - left) / width) * 100;
-    const y = ((e.clientY - top) / height) * 100;
-
-    if (mediaItems[selectedMedia]?.type === "image") {
-      setZoomStyle({
-        backgroundPosition: `${x}% ${y}%`,
-        backgroundImage: `url(${mediaItems[selectedMedia]?.url})`,
-      });
-    }
-  };
-
-  if (isLoading) return <p>Loading...</p>;
-  if (isError) return <p>Failed to load product data.</p>;
-  if (!product) return <p>Product not found.</p>;
-
-  return (
-    <>
-      <Navbar />
-      <CommonLayout>
-        <Toaster position="top-center" />
-        <div className='mt-8 mb-8'>
-          <Breadcrumb />
-        </div>
-
-        <div className='flex gap-12 items-start mt-5 mb-5 w-full'>
-          <div className='lg:col-span-1 space-y-6'>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className='bg-white dark:bg-gray-800 rounded'
-            >
-              <div className='flex flex-col gap-3'>
-                <div
-                  className='w-full h-full flex items-center justify-center'
-                  onMouseMove={handleMouseMove}
-                  onMouseLeave={() => setZoomStyle({})}
-                >
-                  {mediaItems[selectedMedia]?.type === "video" ? (
-                    <VideoPlayer
-                      src={mediaItems[selectedMedia].url}
-                      className='rounded w-full h-full object-cover'
-                      autoPlay
-                      loop={true}
-                      muted={true}
-                      showControls
-                    />
-                  ) : (
-                    <div className='relative w-full h-full'>
-                      <img
-                        src={mediaItems[selectedMedia]?.url}
-                        alt={product.name}
-                        className='w-[671px] h-full object-contain transition-transform duration-300 hover:scale-105'
-                      />
-                      <div
-                        className='absolute inset-0 bg-cover bg-no-repeat scale-150 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300'
-                        style={zoomStyle}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div className='flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-100 dark:scrollbar-track-gray-800'>
-                  {mediaItems?.map((item, index) => (
-                    <button
-                      key={`media-${uuidv4()}`}
-                      onClick={() => setSelectedMedia(index)}
-                      className={`relative aspect-square w-20 flex-shrink-0 rounded overflow-hidden border-2 transition-transform duration-200 ${
-                        selectedMedia === index
-                          ? "border-orange-400 dark:border-primary scale-105"
-                          : "border-gray-200 dark:border-gray-700 hover:scale-95"
-                      }`}
-                    >
-                      {item.type === "video" ? (
-                        <div className='relative w-full h-full flex items-center justify-center bg-black'>
-                          <span className='text-white opacity-80 text-xl'>
-                            ▶
-                          </span>
-                        </div>
-                      ) : (
-                        <img
-                          src={item.url}
-                          alt={`Thumbnail ${index + 1}`}
-                          className='w-full h-full object-cover'
-                        />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          </div>
-
-          <div className='w-full'>
-            <div className='flex flex-col'>
-              <h3 className='text-2xl font-semibold'>{product?.name}</h3>
-              <div
-                dangerouslySetInnerHTML={{ __html: product?.short_description }}
-              />
-              {product.hasVariants && (
-                <h4 className='mt-3 text-2xl font-semibold'>
-                  BDT {minPrice} - BDT {maxPrice}
-                </h4>
-              )}
-
-              {product.hasVariants ? (
-                <div className='flex items-center gap-3 mt-8'>
-                  {offerPrice == 0 ? (
-                    <p className='text-2xl text-gray-500 italic'>
-                      Please select a variant
-                    </p>
-                  ) : (
-                    <>
-                      <h4 className='text-2xl font-semibold text-primary'>
-                        BDT {offerPrice.toLocaleString()}
-                      </h4>
-                      {sellingPrice > offerPrice && (
-                        <h4 className='line-through text-2xl text-red-600 ml-2'>
-                          BDT {sellingPrice.toLocaleString()}
-                        </h4>
-                      )}
-                    </>
-                  )}
-                </div>
-              ) : (
-                <div className='flex items-center gap-3 mt-8'>
-                  <h4 className='text-2xl font-semibold text-primary'>
-                    BDT {product.variantsId[0].offer_price}
-                  </h4>
-                  <h4 className='line-through text-2xl text-red-600 ml-2'>
-                    BDT {product.variantsId[0].selling_price}
-                  </h4>
-                </div>
-              )}
-
-              <div className='flex items-center justify-center gap-3 border-[0.5px] border-gray-500 p-3 mt-5 mb-5 w-24'>
-                <button 
-                  className='cursor-pointer'
-                  onClick={() => setProductCount(Math.max(1, productCount - 1))}
-                >
-                  <FaMinus />
-                </button>
-                <div>{productCount}</div>
-                <button 
-                  className='cursor-pointer'
-                  onClick={() => setProductCount(productCount + 1)}
-                >
-                  <FaPlus />
-                </button>
-              </div>
-
-              {product?.tags?.length > 0 && (
-                <div className='flex flex-col'>
-                  <h4 className='text-md mt-4 font-semibold'>Tags:</h4>
-                  <div className='grid grid-cols-3 lg:grid-cols-4 gap-4 mt-2'>
-                    {product?.tags?.map((tag) => (
-                      <div
-                        key={`tag-${uuidv4()}`}
-                        className='p-2 border-[0.5px] border-gray-400 rounded'
-                      >
-                        <h3 className='text-xs text-center'>{tag}</h3>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {product.hasVariants && (
-                <div className='flex flex-col mt-4'>
-                  <h4 className='text-md font-semibold'>Select Variant:</h4>
-                  <div className='grid grid-cols-3 lg:grid-cols-4 gap-4 mt-2'>
-                    {product?.variantsId?.map((variant) => {
-                      const variantValue = variant?.variants_values?.join("-");
-                      const isSelected = selectedVariant === variant._id;
-                      return (
-                        <div key={`var-${uuidv4()}`}>
-                          <div
-                            className={`p-2 border-[0.5px] rounded cursor-pointer flex items-center ${
-                              isSelected
-                                ? "border-primary bg-primary/10"
-                                : "border-gray-400"
-                            }`}
-                            onClick={() => handleSelectVariant(variant.variants_values[0])}
-                          >
-                            <h3>{variantValue}</h3>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              <button
-                className={`p-3 border-[0.5px] border-gray-900 rounded mt-12 text-center cursor-pointer w-1/2 ${
-                  isAddingToCart ? "opacity-70" : ""
-                }`}
-                onClick={handleAddToCart}
-                disabled={isAddingToCart}
-              >
-                {isAddingToCart ? "Adding..." : "Add To Cart"}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {relatedProducts?.data?.length > 0 && (
-          <div className='mt-12'>
-            <Title title='Related Products' />
-            <div className='mt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 mb-5'>
-              {relatedProducts?.data?.map((product) => (
-                <div key={`related-product-${uuidv4()}`}>
-                  <Image
-                    src={product.images[0].image.optimizeUrl}
-                    alt='related_product'
-                    className='w-[283px] h-[368px]'
-                    width={300}
-                    height={300}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </CommonLayout>
-      <Footer />
-    </>
-  );
+  return <ProductPage singleProduct={product} />;
 }

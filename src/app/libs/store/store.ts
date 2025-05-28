@@ -1,9 +1,12 @@
+// app/libs/store.ts
 import { configureStore } from "@reduxjs/toolkit";
 import { productsApi } from "../features/productsApi";
+import cartReducer from "../features/cartSlice";
 import { businessesApi } from "../features/buissinessApi";
 
 export const store = configureStore({
   reducer: {
+    cart: cartReducer,
     [productsApi.reducerPath]: productsApi.reducer,
     [businessesApi.reducerPath]: businessesApi.reducer,
   },

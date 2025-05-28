@@ -4,17 +4,30 @@ import { FaMagnifyingGlass } from "react-icons/fa6";
 import Image from "next/image";
 import { BsCartDash } from "react-icons/bs";
 import CommonLayout from "@/app/layouts/CommonLayout";
-import logo from "@/app/assets/logo1.jpg";
+import { useSelector } from "react-redux";
+import { RootState } from "@reduxjs/toolkit/query";
 
-export default function NavbarMiddle() {
+interface NavbarMiddleProps {
+  isCartOpen: boolean;
+  setIsCartOpen: (isOpen: boolean) => void;
+}
+
+export default function NavbarMiddle({
+  isCartOpen,
+  setIsCartOpen,
+}: NavbarMiddleProps) {
   const [buisinessLogo, setBusinessLogo] = useState("");
+  console.log("setIsCartOpen", setIsCartOpen); //outputs undefined
+  const { items: cartItems } = useSelector((state: RootState) => state.cart);
+  console.log(cartItems?.length);
+
   useEffect(() => {
     fetch(
-      `https://backend.calquick.app/v2/api/public/67e1167340fa1b061c4b5389/6800959381b0b41ac48282a1`
+      `https://backend.calquick.app/v2/api/public/6829ddabc20c6404b3e2a66b/6829ded2c20c6404b3e2a680/`
     )
       .then((res) => res.json())
-      .then((data) => console.log(data?.data[0].logo.optimizeUrl));
-  });
+      .then((data) => setBusinessLogo(data?.data[0]?.logo?.secure_url));
+  }, []);
 
   return (
     <CommonLayout>
@@ -22,7 +35,7 @@ export default function NavbarMiddle() {
         <div className='w-1/3 place-self-center'></div>
         <div className='w-1/3 place-self-center'>
           <Image
-            src={buisinessLogo || logo}
+            src={buisinessLogo || "/assets/logo1.jpg"}
             alt='business_logo'
             width={100}
             height={50}
@@ -41,8 +54,13 @@ export default function NavbarMiddle() {
               className='absolute top-[10px] right-4'
             />
           </div>
-          <div>
-            <BsCartDash size={44} className='h-10 w-20' />
+          <div className='relative'>
+            <div onClick={() => setIsCartOpen(true)} className='cursor-pointer'>
+              <BsCartDash size={44} className='h-10 w-20' />
+            </div>
+            <sup className='text-white bg-red-700 p-3 rounded-full absolute top-0 right-0'>
+              {cartItems?.length > 9 ? "9+" : cartItems?.length}
+            </sup>
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-import { ReduxProvider } from "./provider/provider";
+import { ReduxProvider } from "./libs/provider/provider";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -16,7 +16,7 @@ export default function RootLayout({
 }>) {
   return (
     <html suppressHydrationWarning lang='en'>
-      <body data-new-gr-c-s-check-loaded='14.1235.0' data-gr-ext-installed=''>
+      <body data-new-gr-c-s-check-loaded='14.1237.0' data-gr-ext-installed=''>
         <ReduxProvider>{children}</ReduxProvider>
       </body>
     </html>

@@ -2,7 +2,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export const businessesApi = createApi({
-  reducerPath: "businessesApi",
+  reducerPath: "buisinessesApi",
   baseQuery: fetchBaseQuery({ baseUrl: `${process.env.NEXT_PUBLIC_APP_URL}` }),
   endpoints: (builder) => ({
     getBusinesses: builder.query({

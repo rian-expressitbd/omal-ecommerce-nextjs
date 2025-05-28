@@ -1,13 +1,18 @@
 import React from "react";
 import NavbarUpper from "./NavbarUpper";
-import NavbarMiddle from "./NavbarMiddle";
 import NavbarLower from "./NavbarLower";
+import dynamic from "next/dynamic";
 
-export default function Navbar() {
+interface NavbarProps {
+  isCartOpen: boolean;
+  setIsCartOpen: (isOpen: boolean) => void;
+}
+const NavbarMiddle = dynamic(() => import("./NavbarMiddle"), { ssr: false });
+export default function Navbar({ isCartOpen, setIsCartOpen }: NavbarProps) {
   return (
     <div>
       <NavbarUpper />
-      <NavbarMiddle />
+      <NavbarMiddle isCartOpen={isCartOpen} setIsCartOpen={setIsCartOpen} />
       <NavbarLower />
     </div>
   );

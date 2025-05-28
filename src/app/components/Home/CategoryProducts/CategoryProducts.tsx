@@ -1,10 +1,11 @@
-import { useGetProductsQuery } from "@/app/features/productsApi";
-import { useGetBusinessesQuery } from "@/app/features/buissinessApi";
-import Title from "../UI/Title";
+import { useGetProductsQuery } from "@/app/libs/features/productsApi";
+import { useGetBusinessesQuery } from "@/app/libs/features/buissinessApi";
+import Title from "../../UI/Title";
 import CommonLayout from "@/app/layouts/CommonLayout";
-import Banner from "../Home/Banner";
-import CategoryProductCard from "../UI/CategoryProductCard";
+import Banner from "../Banner";
+import CategoryProductCard from "../../UI/CategoryProductCard";
 import { useMemo } from "react";
+import Link from "next/link";
 
 export default function CategoryProducts() {
   const {
@@ -71,10 +72,9 @@ export default function CategoryProducts() {
               <Title title={categoryName} />
               <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
                 {products.map((product, index) => (
-                  <CategoryProductCard
-                    key={index} 
-                    product={product}
-                  />
+                  <Link key={product._id} href={`/product/${product._id}`}>
+                    <CategoryProductCard product={product} />
+                  </Link>
                 ))}
               </div>
             </CommonLayout>
