@@ -3,7 +3,7 @@ import React from "react";
 
 export default function NavbarUpper() {
   return (
-    <div className="relative overflow-hidden bg-purple-700 text-white w-full">
+    <div className="relative overflow-hidden bg-purple-700 text-white w-[100vw]">
       <div className="py-3 animate-marquee whitespace-nowrap">
         {[...Array(10)].map((_, i) => (
           <span key={i} className="text-xs font-semibold mx-4 inline-block">

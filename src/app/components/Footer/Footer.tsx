@@ -4,7 +4,7 @@ const Footer: React.FC = () => {
   return (
     <footer className=' text-white '>
       <div className='py-6 px-4 bg-gray-800'>
-        <div className='grid grid-cols-1 md:grid-cols-4 gap-8 container mx-auto'>
+        <div className='grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8 container mx-auto'>
           {/* Contact Us */}
           <div>
             <h3 className='text-lg font-semibold mb-4'>CONTACT US</h3>

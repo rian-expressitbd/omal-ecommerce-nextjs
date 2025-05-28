@@ -1,4 +1,4 @@
-import { getProducts } from "@/app/utils/getProducts";
+import { getProducts } from "@/utils/getProducts";
 import ProductsClientComponent from "./ProductsClientComponent";
 
 export default async function ProductsPage() {

@@ -8,9 +8,9 @@ import CommonLayout from "@/app/layouts/CommonLayout";
 import Navbar from "@/app/components/Navbar/Navbar";
 import Footer from "@/app/components/Footer/Footer";
 import { Toaster, toast } from "react-hot-toast";
-import { Order } from "@/app/types/cart";
+import { Order } from "@/types/cart";
 import { useRouter } from "next/navigation";
-import { CartItem } from "@/app/types/cart";
+import { CartItem } from "@/types/cart";
 
 export default function Checkout() {
   const dispatch = useDispatch<AppDispatch>();

@@ -14,7 +14,7 @@ import {
   removeFromCart,
 } from "./libs/features/cartSlice";
 import CartDrawer from "./components/Home/CartDrawer";
-import { CartItem } from "@/app/types/cart";
+import { CartItem } from "@/types/cart";
 
 export default function Home() {
   const dispatch = useDispatch<AppDispatch>();

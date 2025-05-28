@@ -4,7 +4,7 @@ import React from "react";
 
 export default function NavbarLower() {
   return (
-    <div>
+    <div className="hidden lg:block">
       <CommonLayout>
         <div className='mt-5'>
           <ul className="flex items-center gap-10 justify-center">

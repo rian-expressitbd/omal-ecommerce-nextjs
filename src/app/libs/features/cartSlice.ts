@@ -1,6 +1,6 @@
 // src/app/libs/features/cartSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { CartItem } from "@/app/types/cart";
+import { CartItem } from "@/types/cart";
 
 interface CartState {
   items: CartItem[];
@@ -8,9 +8,10 @@ interface CartState {
 }
 
 const initialState: CartState = {
-  items: typeof window !== "undefined"
-    ? JSON.parse(localStorage.getItem("cartItems") || "[]")
-    : [],
+  items:
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("cartItems") || "[]")
+      : [],
   isCartOpen: false,
 };
 

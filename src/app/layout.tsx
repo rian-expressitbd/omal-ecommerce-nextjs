@@ -16,7 +16,7 @@ export default function RootLayout({
 }>) {
   return (
     <html suppressHydrationWarning lang='en'>
-      <body data-new-gr-c-s-check-loaded='14.1237.0' data-gr-ext-installed=''>
+      <body className="w-[100vw]" data-new-gr-c-s-check-loaded='14.1237.0' data-gr-ext-installed=''>
         <ReduxProvider>{children}</ReduxProvider>
       </body>
     </html>

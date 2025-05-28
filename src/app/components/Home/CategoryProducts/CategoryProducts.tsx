@@ -70,7 +70,7 @@ export default function CategoryProducts() {
           <div key={categoryName}>
             <CommonLayout>
               <Title title={categoryName} />
-              <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
+              <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 gap-x-14 justify-center'>
                 {products.map((product, index) => (
                   <Link key={product._id} href={`/product/${product._id}`}>
                     <CategoryProductCard product={product} />

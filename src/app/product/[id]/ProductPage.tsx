@@ -1,11 +1,10 @@
-// src/app/[id]/ProductPage.tsx
 "use client";
 import { v4 as uuidv4 } from "uuid";
 import Footer from "@/app/components/Footer/Footer";
 import Navbar from "@/app/components/Navbar/Navbar";
 import {
+  useGetProductByIdQuery,
   useGetProductsByCategoriesQuery,
-  useGetProductsQuery,
 } from "@/app/libs/features/productsApi";
 import CommonLayout from "@/app/layouts/CommonLayout";
 import Image from "next/image";
@@ -27,7 +26,7 @@ import {
   removeFromCart,
 } from "@/app/libs/features/cartSlice";
 import CartDrawer from "@/app/components/Home/CartDrawer";
-import { CartItem, Product } from "@/app/types/cart";
+import { CartItem, Product } from "@/types/cart";
 
 interface MediaItem {
   type: "image" | "video";
@@ -35,11 +34,10 @@ interface MediaItem {
 }
 
 interface ProductPageProps {
-  singleProduct: Product | null;
+  initialProduct?: Product | null;
 }
 
-export default function ProductPage({ singleProduct }: ProductPageProps) {
-  const [product, setProductToShow] = useState<Product | null>(null);
+export default function ProductPage({ initialProduct }: ProductPageProps) {
   const [selectedMedia, setSelectedMedia] = useState(0);
   const [sellingPrice, setSellingPrice] = useState(0);
   const [offerPrice, setOfferPrice] = useState(0);
@@ -56,32 +54,42 @@ export default function ProductPage({ singleProduct }: ProductPageProps) {
   const { items: cartItems, isCartOpen } = useSelector(
     (state: RootState) => state.cart
   );
-  const { data: products, isLoading, isError } = useGetProductsQuery();
+
+  const {
+    data: rtkProduct,
+    isLoading,
+    isError,
+    error,
+  } = useGetProductByIdQuery(productId);
+
+  // Use initialProduct as fallback while RTK Query loads
+  const product = initialProduct;
+
+  useEffect(() => {
+    if (product?.variantsId?.length) {
+      const prices = product.variantsId.map((v) => v.selling_price);
+      setMinPrice(Math.min(...prices));
+      setMaxPrice(Math.max(...prices));
+      console.log("product", product);
+
+      // Set default variant if product has variants but none selected
+      if (product.hasVariants && !selectedVariant) {
+        setSelectedVariant(product.variantsId[0]?._id || null);
+      }
+    }
+
+    // Clear old localStorage data (remove after one run)
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("cartItems");
+    }
+  }, [product, selectedVariant]);
+
   const { data: relatedProducts } = useGetProductsByCategoriesQuery(
     product?.sub_category?.[0]?._id,
     {
       skip: !product?.sub_category?.[0]?._id,
     }
   );
-
-  useEffect(() => {
-    if (singleProduct) {
-      setProductToShow(singleProduct);
-      if (singleProduct.variantsId?.length) {
-        const prices = singleProduct.variantsId.map((v) => v.selling_price);
-        setMinPrice(Math.min(...prices));
-        setMaxPrice(Math.max(...prices));
-      }
-    } else if (products?.data && productId) {
-      const foundProduct = products.data.find((p: Product) => p._id === productId);
-      setProductToShow(foundProduct || null);
-      if (foundProduct?.variantsId?.length) {
-        const prices = foundProduct.variantsId.map((v) => v.selling_price);
-        setMinPrice(Math.min(...prices));
-        setMaxPrice(Math.max(...prices));
-      }
-    }
-  }, [singleProduct, products, productId]);
 
   const handleSelectVariant = (selectedVariantValue: string) => {
     const selectedVariantObj = product?.variantsId?.find((v) =>
@@ -100,7 +108,10 @@ export default function ProductPage({ singleProduct }: ProductPageProps) {
   };
 
   const handleAddToCart = () => {
-    if (!product) return;
+    if (!product) {
+      toast.error("Product data not available", { position: "top-center" });
+      return;
+    }
 
     setIsAddingToCart(true);
 
@@ -110,7 +121,7 @@ export default function ProductPage({ singleProduct }: ProductPageProps) {
       return;
     }
 
-    if (product.hasVariants && !selectedVariant) {
+    if (product?.hasVariants && !selectedVariant) {
       toast.error("Please select a variant", { position: "top-center" });
       setIsAddingToCart(false);
       return;
@@ -120,7 +131,12 @@ export default function ProductPage({ singleProduct }: ProductPageProps) {
       const newItem: CartItem = {
         productId: product._id,
         quantity: productCount,
-        variantId: product.hasVariants ? selectedVariant : product.variantsId[0]?._id,
+        variantId: product.hasVariants
+          ? selectedVariant
+          : product.variantsId[0]?._id,
+        name: product.name,
+        price: offerPrice > 0 ? offerPrice : sellingPrice,
+        image: product.images?.[0]?.image?.optimizeUrl || "",
       };
 
       dispatch(addToCart(newItem));
@@ -140,7 +156,9 @@ export default function ProductPage({ singleProduct }: ProductPageProps) {
     quantity: number
   ) => {
     dispatch(updateCartItem({ productId, variantId, quantity }));
-    toast.success(`Quantity updated to ${quantity}`, { position: "top-center" });
+    toast.success(`Quantity updated to ${quantity}`, {
+      position: "top-center",
+    });
   };
 
   const handleRemoveCartItem = (
@@ -178,21 +196,33 @@ export default function ProductPage({ singleProduct }: ProductPageProps) {
     });
   };
 
-  if (isLoading) {
+  if (isLoading && !initialProduct) {
     return (
       <CommonLayout>
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary"></div>
+        <div className='flex justify-center items-center h-64'>
+          <div className='animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary'></div>
         </div>
       </CommonLayout>
     );
   }
 
-  if (isError || !singleProduct) {
+  if ((isError || !product) && !initialProduct) {
     return (
       <CommonLayout>
-        <div className="text-center text-red-500">
-          {isError ? "Failed to load product data." : "Product not found."}
+        <div className='text-center text-red-500'>
+          {isError
+            ? `Failed to load product data: ${JSON.stringify(error)}`
+            : "Product not found."}
+        </div>
+      </CommonLayout>
+    );
+  }
+
+  if (!product) {
+    return (
+      <CommonLayout>
+        <div className='text-center text-red-500'>
+          Product data not available
         </div>
       </CommonLayout>
     );
@@ -205,51 +235,51 @@ export default function ProductPage({ singleProduct }: ProductPageProps) {
         setIsCartOpen={(isOpen) => dispatch(toggleCart(isOpen))}
       />
       <CommonLayout>
-        <Toaster position="top-center" />
-        <div className="mt-8 mb-8">
+        <Toaster position='top-center' />
+        <div className='mt-8 mb-8'>
           <Breadcrumb />
         </div>
 
-        <div className="flex gap-12 items-start mt-5 mb-5 w-full">
-          <div className="lg:col-span-1 space-y-6">
+        <div className='flex flex-col lg:flex-row gap-12 items-start mt-5 mb-5 w-full'>
+          <div className='lg:col-span-1 space-y-6'>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-gray-800 rounded"
+              className='bg-white dark:bg-gray-800 rounded'
             >
-              <div className="flex flex-col gap-3">
+              <div className='flex flex-col gap-3'>
                 <div
-                  className="w-full h-full flex items-center justify-center"
+                  className='w-full h-full flex items-center justify-center'
                   onMouseMove={handleMouseMove}
                   onMouseLeave={() => setZoomStyle({})}
                 >
                   {mediaItems[selectedMedia]?.type === "video" ? (
                     <VideoPlayer
                       src={mediaItems[selectedMedia].url}
-                      className="rounded w-full h-full object-cover"
+                      className='rounded w-full h-full object-cover'
                       autoPlay
                       loop
                       muted
                       showControls
                     />
                   ) : (
-                    <div className="relative w-full h-full">
+                    <div className='relative w-full h-full'>
                       <img
                         src={
                           mediaItems[selectedMedia]?.url || "/placeholder.png"
                         }
                         alt={product.name}
-                        className="w-[671px] h-full object-contain transition-transform duration-300 hover:scale-105"
+                        className='w-[671px] h-full object-contain transition-transform duration-300 hover:scale-105'
                       />
                       <div
-                        className="absolute inset-0 bg-cover bg-no-repeat scale-150 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                        className='absolute inset-0 bg-cover bg-no-repeat scale-150 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300'
                         style={zoomStyle}
                       />
                     </div>
                   )}
                 </div>
 
-                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-100 dark:scrollbar-track-gray-800">
+                <div className='flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-100 dark:scrollbar-track-gray-800'>
                   {mediaItems.map((item, index) => (
                     <button
                       key={`media-${uuidv4()}`}
@@ -261,8 +291,8 @@ export default function ProductPage({ singleProduct }: ProductPageProps) {
                       }`}
                     >
                       {item.type === "video" ? (
-                        <div className="relative w-full h-full flex items-center justify-center bg-black">
-                          <span className="text-white opacity-80 text-xl">
+                        <div className='relative w-full h-full flex items-center justify-center bg-black'>
+                          <span className='text-white opacity-80 text-xl'>
                             ▶
                           </span>
                         </div>
@@ -270,7 +300,7 @@ export default function ProductPage({ singleProduct }: ProductPageProps) {
                         <img
                           src={item.url || "/placeholder.png"}
                           alt={`Thumbnail ${index + 1}`}
-                          className="w-full h-full object-cover"
+                          className='w-full h-full object-cover'
                         />
                       )}
                     </button>
@@ -280,35 +310,35 @@ export default function ProductPage({ singleProduct }: ProductPageProps) {
             </motion.div>
           </div>
 
-          <div className="w-full">
-            <div className="flex flex-col">
-              <h3 className="text-2xl font-semibold max-w-[500px] break-words">
+          <div className='w-full'>
+            <div className='flex flex-col'>
+              <h3 className='text-2xl font-semibold max-w-[500px] break-words'>
                 {product.name}
               </h3>
               <div
-                className="max-w-[500px] break-words"
+                className='max-w-[500px] break-words'
                 dangerouslySetInnerHTML={{ __html: product.short_description }}
               ></div>
               {product.hasVariants && (
-                <h4 className="mt-3 text-2xl font-semibold">
+                <h4 className='mt-3 text-2xl font-semibold'>
                   BDT {minPrice.toLocaleString()} - BDT{" "}
                   {maxPrice.toLocaleString()}
                 </h4>
               )}
 
               {product.hasVariants ? (
-                <div className="flex items-center gap-3 mt-8">
+                <div className='flex items-center gap-3 mt-8'>
                   {offerPrice === 0 ? (
-                    <p className="text-2xl text-gray-500 italic">
+                    <p className='text-2xl text-gray-500 italic'>
                       Please select a variant
                     </p>
                   ) : (
                     <>
-                      <h4 className="text-2xl font-semibold text-primary">
+                      <h4 className='text-2xl font-semibold text-primary'>
                         BDT {offerPrice.toLocaleString()}
                       </h4>
                       {sellingPrice > offerPrice && (
-                        <h4 className="line-through text-2xl text-red-600 ml-2">
+                        <h4 className='line-through text-2xl text-red-600 ml-2'>
                           BDT {sellingPrice.toLocaleString()}
                         </h4>
                       )}
@@ -316,29 +346,29 @@ export default function ProductPage({ singleProduct }: ProductPageProps) {
                   )}
                 </div>
               ) : (
-                <div className="flex items-center gap-3 mt-8">
-                  <h4 className="text-2xl font-semibold text-primary">
+                <div className='flex items-center gap-3 mt-8'>
+                  <h4 className='text-2xl font-semibold text-primary'>
                     BDT {product.variantsId[0].offer_price.toLocaleString()}
                   </h4>
                   {product.variantsId[0].selling_price >
                     product.variantsId[0].offer_price && (
-                    <h4 className="line-through text-2xl text-red-600 ml-2">
+                    <h4 className='line-through text-2xl text-red-600 ml-2'>
                       BDT {product.variantsId[0].selling_price.toLocaleString()}
                     </h4>
                   )}
                 </div>
               )}
 
-              <div className="flex items-center justify-center gap-3 border-[0.5px] border-gray-500 p-3 mt-5 mb-5 w-24">
+              <div className='flex items-center justify-center gap-3 border-[0.5px] border-gray-500 p-3 mt-5 mb-5 w-24'>
                 <button
-                  className="cursor-pointer"
+                  className='cursor-pointer'
                   onClick={() => setProductCount(Math.max(1, productCount - 1))}
                 >
                   <FaMinus />
                 </button>
                 <div>{productCount}</div>
                 <button
-                  className="cursor-pointer"
+                  className='cursor-pointer'
                   onClick={() => setProductCount(productCount + 1)}
                 >
                   <FaPlus />
@@ -346,15 +376,15 @@ export default function ProductPage({ singleProduct }: ProductPageProps) {
               </div>
 
               {product.tags?.length > 0 && (
-                <div className="flex flex-col">
-                  <h4 className="text-md mt-4 font-semibold">Tags:</h4>
-                  <div className="grid grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
+                <div className='flex flex-col'>
+                  <h4 className='text-md mt-4 font-semibold'>Tags:</h4>
+                  <div className='grid grid-cols-3 lg:grid-cols-4 gap-4 mt-2'>
                     {product.tags.map((tag) => (
                       <div
                         key={`tag-${uuidv4()}`}
-                        className="p-2 border-[0.5px] border-gray-400 rounded"
+                        className='p-2 border-[0.5px] border-gray-400 rounded'
                       >
-                        <h3 className="text-xs text-center">{tag}</h3>
+                        <h3 className='text-xs text-center'>{tag}</h3>
                       </div>
                     ))}
                   </div>
@@ -362,9 +392,9 @@ export default function ProductPage({ singleProduct }: ProductPageProps) {
               )}
 
               {product.hasVariants && (
-                <div className="flex flex-col mt-4">
-                  <h4 className="text-md font-semibold">Select Variant:</h4>
-                  <div className="grid grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
+                <div className='flex flex-col mt-4'>
+                  <h4 className='text-md font-semibold'>Select Variant:</h4>
+                  <div className='grid grid-cols-3 lg:grid-cols-4 gap-4 mt-2'>
                     {product.variantsId.map((variant) => {
                       const variantValue = variant.variants_values.join("-");
                       const isSelected = selectedVariant === variant._id;
@@ -403,9 +433,9 @@ export default function ProductPage({ singleProduct }: ProductPageProps) {
         </div>
 
         {relatedProducts?.data?.length > 0 && (
-          <div className="mt-12">
-            <Title title="Related Products" />
-            <div className="mt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 mb-5">
+          <div className='mt-12'>
+            <Title title='Related Products' />
+            <div className='mt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 mb-5'>
               {relatedProducts.data.map((product: Product) => (
                 <div key={`related-product-${uuidv4()}`}>
                   <Image
@@ -414,7 +444,7 @@ export default function ProductPage({ singleProduct }: ProductPageProps) {
                       "/placeholder.png"
                     }
                     alt={product.name}
-                    className="w-[283px] h-[368px] object-cover"
+                    className='w-[283px] h-[368px] object-cover'
                     width={300}
                     height={300}
                   />

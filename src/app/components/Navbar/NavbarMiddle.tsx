@@ -31,7 +31,7 @@ export default function NavbarMiddle({
 
   return (
     <CommonLayout>
-      <div className='grid grid-cols-3 mt-5'>
+      <div className=' grid grid-cols-3 mt-5'>
         <div className='w-1/3 place-self-center'></div>
         <div className='w-1/3 place-self-center'>
           <Image
@@ -42,8 +42,8 @@ export default function NavbarMiddle({
           />
         </div>
 
-        <div className='flex items-center gap-3 w-1/3 place-self-center'>
-          <div className='relative'>
+        <div className='flex items-center gap-0 xl:gap-3 w-1/3 place-self-center mr-20'>
+          <div className='relative hidden xl:block'>
             <input
               className=' h-10 bg-gray-200 p-4 rounded-4xl'
               placeholder='Search'
